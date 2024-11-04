@@ -72,6 +72,9 @@ usa_map = {
     "WY": ["MT", "SD", "NE", "CO", "UT", "ID"]
 }
 
+backtrack_dfs = 0
+backtrack_dfs_for = 0
+
 
 def visualize_coloring(mapp, coloring):
     g = nx.Graph()
@@ -95,6 +98,76 @@ def is_valid(vertex, coloring, col, mapp, states):
     return True
 
 
+def next_dfs(coloring, states, mapp):
+    min_domain_size = float('inf')
+    max_degree = -1
+    next_vertex = -1
+
+    for i in range(len(states)):
+        if coloring[i] == 0:
+            available_colors = sum(1 for col in range(1, len(states) + 1) if is_valid(i, coloring, col, mapp, states))
+            degree = len(mapp[states[i]])
+
+            if (available_colors < min_domain_size) or (available_colors == min_domain_size and degree > max_degree):
+                min_domain_size = available_colors
+                max_degree = degree
+                next_vertex = i
+
+    return next_vertex
+
+
+def lcv_dfs(vertex, coloring, mapp, states, max_colors):
+    color_constraints = []
+
+    for color in range(1, max_colors + 1):
+        if is_valid(vertex, coloring, color, mapp, states):
+            constraint_count = 0
+            state = states[vertex]
+
+            for neighbor in mapp[state]:
+                neighbor_index = states.index(neighbor)
+                if coloring[neighbor_index] == 0 and is_valid(neighbor_index, coloring, color, mapp, states):
+                    constraint_count += 1
+
+            color_constraints.append((color, constraint_count))
+
+    color_constraints.sort(key=lambda x: x[1])  # Sort by constraint count (ascending)
+    return [color for color, _ in color_constraints]
+
+
+def search_dfs(colors, coloring, mapp, states):
+    global backtrack_dfs
+    vertex = next_dfs(coloring, states, mapp)
+    if vertex == -1:
+        return True
+
+    for col in lcv_dfs(vertex, coloring, mapp, states, colors):
+        if is_valid(vertex, coloring, col, mapp, states):
+            coloring[vertex] = col  # Assign color
+            if search_dfs(colors, coloring, mapp, states):
+                return True
+            coloring[vertex] = 0  # Backtrack
+            backtrack_dfs += 1
+
+    return False
+
+
+def color_dfs(mapp):
+    global backtrack_dfs
+    backtrack_dfs = 0
+    states = list(mapp.keys())
+
+    for colors in range(1, len(states) + 1):
+        print(f"Trying with {colors} color(s)...")
+        coloring = [0] * len(states)
+        if search_dfs(colors, coloring, mapp, states):
+            solution = {states[i]: coloring[i] for i in range(len(coloring))}
+            print(f"The chromatic number is: {colors}")
+            print(f"Total number of backtracks: {backtrack_dfs}")
+            return colors, solution
+    return len(states), {states[i]: i for i in range(1, len(states) + 1)}
+
+
 def forward_check(vertex, coloring, domains, col, mapp, states):
     state = states[vertex]
     removed_colors = []
@@ -114,7 +187,7 @@ def restore_domains(removed_colors, domains):
         domains[neighbor_index].add(color)
 
 
-def select_next_vertex(domains, coloring, states, mapp):
+def next_dfs_for(domains, coloring, states, mapp):
     min_domain_size = float('inf')
     max_degree = -1
     next_vertex = -1
@@ -131,7 +204,7 @@ def select_next_vertex(domains, coloring, states, mapp):
     return next_vertex
 
 
-def least_constraining_value(vertex, domains, mapp, states):
+def lcv_dfs_for(vertex, domains, mapp, states):
     state = states[vertex]
     color_constraints = []
 
@@ -148,12 +221,12 @@ def least_constraining_value(vertex, domains, mapp, states):
 
 
 def search_dfs_for(colors, coloring, mapp, states, domains):
-    vertex = select_next_vertex(domains, coloring, states, mapp)
-
+    global backtrack_dfs_for
+    vertex = next_dfs_for(domains, coloring, states, mapp)
     if vertex == -1:  # solution found
         return True
 
-    for col in least_constraining_value(vertex, domains, mapp, states):
+    for col in lcv_dfs_for(vertex, domains, mapp, states):
         if is_valid(vertex, coloring, col, mapp, states):
             coloring[vertex] = col  # Assign color
             success, removed_colors = forward_check(vertex, coloring, domains, col, mapp, states)
@@ -162,12 +235,15 @@ def search_dfs_for(colors, coloring, mapp, states, domains):
                     return True
             # Backtrack
             coloring[vertex] = 0
+            backtrack_dfs_for += 1
             restore_domains(removed_colors, domains)  # Restore in one place after backtracking
 
     return False
 
 
 def color_dfs_for(mapp):
+    global backtrack_dfs_for
+    backtrack_dfs_for = 0
     states = list(mapp.keys())
 
     for colors in range(1, len(states) + 1):
@@ -177,6 +253,7 @@ def color_dfs_for(mapp):
         if search_dfs_for(colors, coloring, mapp, states, domains):
             solution = {states[i]: coloring[i] for i in range(len(coloring))}
             print(f"The chromatic number is: {colors}")
+            print(f"Total number of backtracks: {backtrack_dfs_for}")
             return colors, solution
     return len(states), {states[i]: i for i in range(1, len(states) + 1)}
 
@@ -185,8 +262,7 @@ def main():
     start = time.time()
     num_colors, solution = color_dfs_for(usa_map)
     end = time.time()
-    print(end - start)
-    print("chromatic number: ", num_colors)
+    print("Total time: ", end - start)
     print(solution)
     print("\n")
 

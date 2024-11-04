@@ -73,6 +73,9 @@ usa_map = {
     "WY": ["MT", "SD", "NE", "CO", "UT", "ID"]
 }
 
+backtrack_dfs = 0
+backtrack_dfs_for = 0
+
 
 def visualize_coloring(mapp, coloring):
     g = nx.Graph()
@@ -97,6 +100,7 @@ def is_valid(vertex, coloring, col, mapp, states):
 
 
 def search_dfs(colors, coloring, vertex, mapp, states):
+    global backtrack_dfs
     if vertex == len(states):
         return True
 
@@ -106,11 +110,14 @@ def search_dfs(colors, coloring, vertex, mapp, states):
             if search_dfs(colors, coloring, vertex + 1, mapp, states):
                 return True
             coloring[vertex] = 0  # Backtrack
+            backtrack_dfs += 1
 
     return False
 
 
 def color_dfs(mapp):
+    global backtrack_dfs
+    backtrack_dfs = 0
     states = list(mapp.keys())
     random.shuffle(states)
     states = sorted(mapp.keys(), key=lambda x: len(mapp[x]), reverse=True)
@@ -121,6 +128,7 @@ def color_dfs(mapp):
         if search_dfs(colors, coloring, 0, mapp, states):
             solution = {states[i]: coloring[i] for i in range(len(coloring))}
             print(f"The chromatic number is: {colors}")
+            print(f"Total number of backtracks: {backtrack_dfs}")
             return colors, solution
     return len(states), {states[i]: i for i in range(1, len(states) + 1)}
 
@@ -145,6 +153,7 @@ def restore_domains(removed_colors, domains):
 
 
 def search_dfs_for(colors, coloring, vertex, mapp, states, domains):
+    global backtrack_dfs_for
     if vertex == len(states):
         return True
 
@@ -157,12 +166,15 @@ def search_dfs_for(colors, coloring, vertex, mapp, states, domains):
                     return True
             # Backtrack
             coloring[vertex] = 0
+            backtrack_dfs_for += 1
             restore_domains(removed_colors, domains)  # Restore in one place after backtracking
 
     return False
 
 
 def color_dfs_for(mapp):
+    global backtrack_dfs_for
+    backtrack_dfs_for = 0
     states = list(mapp.keys())
     random.shuffle(states)
     states = sorted(mapp.keys(), key=lambda x: len(mapp[x]), reverse=True)
@@ -174,6 +186,7 @@ def color_dfs_for(mapp):
         if search_dfs_for(colors, coloring, 0, mapp, states, domains):
             solution = {states[i]: coloring[i] for i in range(len(coloring))}
             print(f"The chromatic number is: {colors}")
+            print(f"Total number of backtracks: {backtrack_dfs_for}")
             return colors, solution
     return len(states), {states[i]: i for i in range(1, len(states) + 1)}
 
@@ -182,8 +195,7 @@ def main():
     start = time.time()
     num_colors, solution = color_dfs_for(usa_map)
     end = time.time()
-    print(end - start)
-    print("chromatic number: ", num_colors)
+    print("Total time: ", end - start)
     print(solution)
     print("\n")
 
