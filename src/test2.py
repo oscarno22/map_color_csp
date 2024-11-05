@@ -74,6 +74,7 @@ usa_map = {
 
 backtrack_dfs = 0
 backtrack_dfs_for = 0
+backtrack_dfs_for_prop = 0
 
 
 def visualize_coloring(mapp, coloring):
@@ -258,9 +259,70 @@ def color_dfs_for(mapp):
     return len(states), {states[i]: i for i in range(1, len(states) + 1)}
 
 
+def propagate(coloring, domains, mapp, states, removed_colors):
+    singleton_queue = [i for i, domain in enumerate(domains) if len(domain) == 1 and coloring[i] == 0]
+
+    while singleton_queue:
+        singleton_vertex = singleton_queue.pop(0)
+        singleton_color = next(iter(domains[singleton_vertex]))  # Get the single color left
+
+        for neighbor in mapp[states[singleton_vertex]]:
+            neighbor_index = states.index(neighbor)
+            if coloring[neighbor_index] == 0 and singleton_color in domains[neighbor_index]:
+                domains[neighbor_index].remove(singleton_color)
+                removed_colors.append((neighbor_index, singleton_color))
+
+                if len(domains[neighbor_index]) == 1:
+                    singleton_queue.append(neighbor_index)
+
+                if not domains[neighbor_index]:  # Empty domain means inconsistency
+                    return False
+
+    return True
+
+
+def search_dfs_for_prop(colors, coloring, mapp, states, domains):
+    global backtrack_dfs_for_prop
+    vertex = next_dfs_for(domains, coloring, states, mapp)
+    if vertex == -1:  # solution found
+        return True
+
+    for col in lcv_dfs_for(vertex, domains, mapp, states):
+        if is_valid(vertex, coloring, col, mapp, states):
+            coloring[vertex] = col  # Assign color
+            success, removed_colors = forward_check(vertex, coloring, domains, col, mapp, states)
+            if success:
+                if propagate(coloring, domains, mapp, states, removed_colors):
+                    if search_dfs_for_prop(colors, coloring, mapp, states, domains):
+                        return True
+
+            coloring[vertex] = 0
+            backtrack_dfs_for_prop += 1
+            restore_domains(removed_colors, domains)
+
+    return False
+
+
+def color_dfs_for_prop(mapp):
+    global backtrack_dfs_for_prop
+    backtrack_dfs_for_prop = 0
+    states = list(mapp.keys())
+
+    for colors in range(1, len(states) + 1):
+        print(f"Trying with {colors} color(s)...")
+        coloring = [0] * len(states)
+        domains = [{col for col in range(1, colors + 1)} for _ in range(len(states))]
+        if search_dfs_for_prop(colors, coloring, mapp, states, domains):
+            solution = {states[i]: coloring[i] for i in range(len(coloring))}
+            print(f"The chromatic number is: {colors}")
+            print(f"Total number of backtracks: {backtrack_dfs_for_prop}")
+            return colors, solution
+    return len(states), {states[i]: i for i in range(1, len(states) + 1)}
+
+
 def main():
     start = time.time()
-    num_colors, solution = color_dfs_for(usa_map)
+    num_colors, solution = color_dfs_for_prop(usa_map)
     end = time.time()
     print("Total time: ", end - start)
     print(solution)
