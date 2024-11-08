@@ -5,10 +5,10 @@ ITCS 6150
 Project 3: Map Coloring CSP
 """
 
-import time
 import random
 import networkx as nx
 import matplotlib.pyplot as plt
+from timeit import default_timer as timer
 
 australia_map = {
     "WA": ["NT", "SA"],
@@ -334,14 +334,14 @@ def search_dfs_for_prop_h(colors, coloring, mapp, states, domains):
     return False  # if no solution in this call, return False
 
 
-# CHROMATIC COLOR FIND
+# CHROMATIC NUM FIND
 
 def color_dfs(mapp):
+    print("Searching w/ DFS\n")
     global num_backtrack
     num_backtrack = 0
     states = list(mapp.keys())  # convert states into list
     random.shuffle(states)
-    # states = sorted(mapp.keys(), key=lambda x: len(mapp[x]), reverse=True)
 
     for colors in range(1, len(states) + 1):  # iterate through increasing number of colors
         print(f"Trying with {colors} color(s)...")
@@ -355,6 +355,7 @@ def color_dfs(mapp):
 
 
 def color_dfs_h(mapp):
+    print("Searching w/ DFS w/ Heuristics\n")
     global num_backtrack
     num_backtrack = 0
     states = list(mapp.keys())  # convert states to list
@@ -371,11 +372,11 @@ def color_dfs_h(mapp):
 
 
 def color_dfs_for(mapp):
+    print("Searching w/ DFS + FC\n")
     global num_backtrack
     num_backtrack = 0
     states = list(mapp.keys())  # convert states to list
     random.shuffle(states)
-    states = sorted(mapp.keys(), key=lambda x: len(mapp[x]), reverse=True)
 
     for colors in range(1, len(states) + 1):  # iterate through increasing number of colors
         print(f"Trying with {colors} color(s)...")
@@ -390,6 +391,7 @@ def color_dfs_for(mapp):
 
 
 def color_dfs_for_h(mapp):
+    print("Searching w/ DFS + FC w/ Heuristics\n")
     global num_backtrack
     num_backtrack = 0
     states = list(mapp.keys())  # convert states to list
@@ -407,11 +409,11 @@ def color_dfs_for_h(mapp):
 
 
 def color_dfs_for_prop(mapp):
+    print("Searching w/ DFS + FC + Prop\n")
     global num_backtrack
     num_backtrack = 0
     states = list(mapp.keys())  # convert states to list
     random.shuffle(states)
-    states = sorted(mapp.keys(), key=lambda x: len(mapp[x]), reverse=True)
 
     for colors in range(1, len(states) + 1):  # iterate through increasing number of colors
         print(f"Trying with {colors} color(s)...")
@@ -426,6 +428,7 @@ def color_dfs_for_prop(mapp):
 
 
 def color_dfs_for_prop_h(mapp):
+    print("Searching w/ DFS + FC + Prop w/ Heuristics\n")
     global num_backtrack
     num_backtrack = 0
     states = list(mapp.keys())  # convert states to list
@@ -443,14 +446,16 @@ def color_dfs_for_prop_h(mapp):
 
 
 def main():
-    start = time.time()
-    num_colors, solution = color_dfs(usa_map)
-    end = time.time()
+    MAP = australia_map
+
+    start = timer()
+    num_colors, solution = color_dfs_for_h(MAP)  # feel free to change search function
+    end = timer()
     print("Total time: ", end - start)
     print(solution)
     print("\n")
 
-    visualize_coloring(usa_map, solution)
+    visualize_coloring(MAP, solution)
 
 
 if __name__ == '__main__':
